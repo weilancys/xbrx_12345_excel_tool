@@ -2,6 +2,8 @@ import tkinter as tk
 import tkinter.messagebox
 import tkinter.filedialog
 from tkinter import ttk
+import datetime
+from .excel import find_rows_by_time, write_rows_to_output_template
 
 
 class xbrx_12345_excel_tool(tk.Tk):
@@ -12,6 +14,14 @@ class xbrx_12345_excel_tool(tk.Tk):
     def __init_ui(self):
         self.title("小白热线 12345 EXCEL 工具")
         self.geometry("800x600")
+
+        # date and time ranges
+        YEAR_RANGE = [year for year in range(2015, 2031)]
+        MONTH_RANGE = [month for month in range(1, 13)]
+        DAY_RANGE = [day for day in range(1, 32)]
+        HOUR_RANGE = [hour for hour in range(0, 25)]
+        MINUTE_RANGE = [minute for minute in range(0, 61)]
+        SECOND_RANGE = [second for second in range(0, 61)]
 
         # tabs
         tab_parent = ttk.Notebook(self)
@@ -40,36 +50,44 @@ class xbrx_12345_excel_tool(tk.Tk):
         frame_set_time = ttk.LabelFrame(tab_split, text="设置起始时间：")
 
         # start time input widgets
+        now = datetime.datetime.now()
+
         label_start = ttk.Label(frame_set_time, text="起：")
         label_start.grid(row=0, column=0)
 
-        cb_start_year = ttk.Combobox(frame_set_time, width=5)
-        cb_start_year.grid(row=0, column=1)
+        self.cb_start_year = ttk.Combobox(frame_set_time, width=5, values=YEAR_RANGE)
+        self.cb_start_year.set(now.year)
+        self.cb_start_year.grid(row=0, column=1)
         label_start_year = ttk.Label(frame_set_time, text="年")
         label_start_year.grid(row=0, column=2)
 
-        cb_start_month = ttk.Combobox(frame_set_time, width=3)
-        cb_start_month.grid(row=0, column=3)
+        self.cb_start_month = ttk.Combobox(frame_set_time, width=3, values=MONTH_RANGE)
+        self.cb_start_month.set(now.month)
+        self.cb_start_month.grid(row=0, column=3)
         label_start_month = ttk.Label(frame_set_time, text="月")
         label_start_month.grid(row=0, column=4)
 
-        cb_start_day = ttk.Combobox(frame_set_time, width=3)
-        cb_start_day.grid(row=0, column=5)
+        self.cb_start_day = ttk.Combobox(frame_set_time, width=3, values=DAY_RANGE)
+        self.cb_start_day.set(now.day)
+        self.cb_start_day.grid(row=0, column=5)
         label_start_day = ttk.Label(frame_set_time, text="日")
         label_start_day.grid(row=0, column=6)
 
-        cb_start_hour = ttk.Combobox(frame_set_time, width=3)
-        cb_start_hour.grid(row=0, column=7)
+        self.cb_start_hour = ttk.Combobox(frame_set_time, width=3, values=HOUR_RANGE)
+        self.cb_start_hour.set(now.hour)
+        self.cb_start_hour.grid(row=0, column=7)
         label_start_hour = ttk.Label(frame_set_time, text="时")
         label_start_hour.grid(row=0, column=8)
 
-        cb_start_minute = ttk.Combobox(frame_set_time, width=3)
-        cb_start_minute.grid(row=0, column=9)
+        self.cb_start_minute = ttk.Combobox(frame_set_time, width=3, values=MINUTE_RANGE)
+        self.cb_start_minute.set(now.minute)
+        self.cb_start_minute.grid(row=0, column=9)
         label_start_minute = ttk.Label(frame_set_time, text="分")
         label_start_minute.grid(row=0, column=10)
 
-        cb_start_second = ttk.Combobox(frame_set_time, width=3)
-        cb_start_second.grid(row=0, column=11)
+        self.cb_start_second = ttk.Combobox(frame_set_time, width=3, values=SECOND_RANGE)
+        self.cb_start_second.set(now.second)
+        self.cb_start_second.grid(row=0, column=11)
         label_start_second = ttk.Label(frame_set_time, text="秒")
         label_start_second.grid(row=0, column=12)
 
@@ -78,40 +96,46 @@ class xbrx_12345_excel_tool(tk.Tk):
         label_end = ttk.Label(frame_set_time, text="止：")
         label_end.grid(row=1, column=0)
 
-        cb_end_year = ttk.Combobox(frame_set_time, width=5)
-        cb_end_year.grid(row=1, column=1)
+        self.cb_end_year = ttk.Combobox(frame_set_time, width=5, values=YEAR_RANGE)
+        self.cb_end_year.set(now.year)
+        self.cb_end_year.grid(row=1, column=1)
         label_end_year = ttk.Label(frame_set_time, text="年")
         label_end_year.grid(row=1, column=2)
 
-        cb_end_month = ttk.Combobox(frame_set_time, width=3)
-        cb_end_month.grid(row=1, column=3)
+        self.cb_end_month = ttk.Combobox(frame_set_time, width=3, values=MONTH_RANGE)
+        self.cb_end_month.set(now.month)
+        self.cb_end_month.grid(row=1, column=3)
         label_end_month = ttk.Label(frame_set_time, text="月")
         label_end_month.grid(row=1, column=4)
 
-        cb_end_day = ttk.Combobox(frame_set_time, width=3)
-        cb_end_day.grid(row=1, column=5)
+        self.cb_end_day = ttk.Combobox(frame_set_time, width=3, values=DAY_RANGE)
+        self.cb_end_day.set(now.day)
+        self.cb_end_day.grid(row=1, column=5)
         label_end_day = ttk.Label(frame_set_time, text="日")
         label_end_day.grid(row=1, column=6)
 
-        cb_end_hour = ttk.Combobox(frame_set_time, width=3)
-        cb_end_hour.grid(row=1, column=7)
+        self.cb_end_hour = ttk.Combobox(frame_set_time, width=3, values=HOUR_RANGE)
+        self.cb_end_hour.set(now.hour)
+        self.cb_end_hour.grid(row=1, column=7)
         label_end_hour = ttk.Label(frame_set_time, text="时")
         label_end_hour.grid(row=1, column=8)
 
-        cb_end_minute = ttk.Combobox(frame_set_time, width=3)
-        cb_end_minute.grid(row=1, column=9)
+        self.cb_end_minute = ttk.Combobox(frame_set_time, width=3, values=MINUTE_RANGE)
+        self.cb_end_minute.set(now.minute)
+        self.cb_end_minute.grid(row=1, column=9)
         label_end_minute = ttk.Label(frame_set_time, text="分")
         label_end_minute.grid(row=1, column=10)
 
-        cb_end_second = ttk.Combobox(frame_set_time, width=3)
-        cb_end_second.grid(row=1, column=11)
+        self.cb_end_second = ttk.Combobox(frame_set_time, width=3, values=SECOND_RANGE)
+        self.cb_end_second.set(now.second)
+        self.cb_end_second.grid(row=1, column=11)
         label_end_second = ttk.Label(frame_set_time, text="秒")
         label_end_second.grid(row=1, column=12)
 
         frame_set_time.pack(fill=tk.X)
 
         # button export
-        btn_export = ttk.Button(tab_split, text="导出热线系统模板")
+        btn_export = ttk.Button(tab_split, text="导出热线系统模板", command=self.on_btn_export_click)
         btn_export.pack()
 
     
@@ -119,13 +143,67 @@ class xbrx_12345_excel_tool(tk.Tk):
         filename = tk.filedialog.askopenfilename()
         if filename == "":
             return
-        # tk.messagebox.showinfo("open", filename)
-        # self.entry_12345_source_workbook_path.insert(0, filename)
-        self.str_12345_source_workbook.set(filename)
+        if filename.endswith(".xls") or filename.endswith(".xlsx"):    
+            self.str_12345_source_workbook.set(filename)
+        else:
+            tk.messagebox.showerror("错误", "仅支持excel文件")
+    
+    
+    def on_btn_export_click(self):
+        source_excel_filename = self.str_12345_source_workbook.get()
+        if source_excel_filename.strip() == "":
+            tk.messagebox.showerror("错误", "请先选择Excel文件")
+            return
 
+        start_time = datetime.datetime(
+            int(self.cb_start_year.get()),
+            int(self.cb_start_month.get()),
+            int(self.cb_start_day.get()),
+            int(self.cb_start_hour.get()),
+            int(self.cb_start_minute.get()),
+            int(self.cb_start_second.get())
+        )
+
+        end_time = datetime.datetime(
+            int(self.cb_end_year.get()),
+            int(self.cb_end_month.get()),
+            int(self.cb_end_day.get()),
+            int(self.cb_end_hour.get()),
+            int(self.cb_end_minute.get()),
+            int(self.cb_end_second.get())
+        )
+        
+        rows = find_rows_by_time(source_excel_filename, start_time, end_time)
+
+        save_file_name = tk.filedialog.asksaveasfilename(filetypes = [("Excel 文件", "*.xlsx")], defaultextension=".xlsx", initialfile="123")
+        print(save_file_name)
+        if save_file_name == "":
+            return
+        if not save_file_name.endswith(".xlsx"):
+            return
+
+        if write_rows_to_output_template(save_file_name, rows):
+            tk.messagebox.showinfo("成功", "保存成功")
+        else:
+            tk.messagebox.showerror("错误", "保存失败")
+        # tk.messagebox.showinfo("rows", rows)
+    
+    def on_btn_test(self):
+        write_rows_to_output_template(1)
     
     def run(self):
         self.mainloop()
+
+
+class row_select_dialog(tk.Toplevel):
+    """
+    things that might make me happy now:
+        1. coding
+        2. partner
+        3. racing & trucking
+        4. reading
+    """
+    pass
 
 
 if __name__ == "__main__":
