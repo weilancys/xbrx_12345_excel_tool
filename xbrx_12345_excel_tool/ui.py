@@ -3,17 +3,20 @@ import tkinter.messagebox
 import tkinter.filedialog
 from tkinter import ttk
 import datetime
-from .excel import find_rows_by_time, write_rows_to_output_template
+import os
+from .excel import find_rows_by_time, write_rows_to_output_template, generate_validation_report, save_validation_report_file
+from .utils import make_config_dirs, make_today_dir, dt_to_date_str, dt_to_datetime_str, open_folder
 
 
 class xbrx_12345_excel_tool(tk.Tk):
     def __init__(self):
         super().__init__()
+        make_config_dirs()
         self.__init_ui()
 
     def __init_ui(self):
         self.title("小白热线 12345 EXCEL 工具")
-        self.geometry("800x600")
+        self.geometry("490x200")
 
         # date and time ranges
         YEAR_RANGE = [year for year in range(2015, 2031)]
@@ -27,16 +30,15 @@ class xbrx_12345_excel_tool(tk.Tk):
         tab_parent = ttk.Notebook(self)
         tab_split = ttk.Frame(tab_parent)
         tab_validation = ttk.Frame(tab_parent)
-        tab_logs = ttk.Frame(tab_parent)
+        # tab_logs = ttk.Frame(tab_parent)
 
         tab_parent.add(tab_split, text="导出")
         tab_parent.add(tab_validation, text="复核")
-        tab_parent.add(tab_logs, text="日志")
+        # tab_parent.add(tab_logs, text="日志")
         tab_parent.pack(expand=1, fill=tk.BOTH)
 
 
         # controls
-
         # frame 12345 source workbook
         frame_12345_source_workbook = ttk.LabelFrame(tab_split, text="12345源表：")
         btn_choose_12345_source_workbook = ttk.Button(frame_12345_source_workbook, text="选择12345源表", command=self.on_btn_choose_12345_source_workbook_click)
@@ -47,7 +49,7 @@ class xbrx_12345_excel_tool(tk.Tk):
         frame_12345_source_workbook.pack(fill=tk.X)
 
         # frame set time
-        frame_set_time = ttk.LabelFrame(tab_split, text="设置起始时间：")
+        frame_set_time = ttk.LabelFrame(tab_split, text="设置起止接收时间：")
 
         # start time input widgets
         now = datetime.datetime.now()
@@ -134,9 +136,42 @@ class xbrx_12345_excel_tool(tk.Tk):
 
         frame_set_time.pack(fill=tk.X)
 
-        # button export
-        btn_export = ttk.Button(tab_split, text="导出热线系统模板", command=self.on_btn_export_click)
-        btn_export.pack()
+        # frame export actions
+        frame_export_actions = ttk.Frame(tab_split)
+        btn_export = ttk.Button(frame_export_actions, text="导出热线系统模板", command=self.on_btn_export_click)
+        btn_export.grid(row=0, column=0)
+        btn_open_export_folder = ttk.Button(frame_export_actions, text="打开导出模板文件夹", command=self.on_btn_open_export_folder_click)
+        btn_open_export_folder.grid(row=0, column=1)
+        frame_export_actions.pack()
+
+
+        # 12345 banlidan total frame
+        frame_12345_banlidan_total = ttk.LabelFrame(tab_validation, text="12345办理单汇总表(政府表):")
+        btn_choose_12345_banlidan_total = ttk.Button(frame_12345_banlidan_total, text="选择政府表", command=self.on_btn_choose_12345_banlidan_total_click)
+        btn_choose_12345_banlidan_total.grid(row=0, column=0)
+        self.str_12345_banlidan_total_path = tk.StringVar()
+        self.entry_12345_banlidan_total_path = ttk.Entry(frame_12345_banlidan_total, state="readonly", textvariable=self.str_12345_banlidan_total_path)
+        self.entry_12345_banlidan_total_path.grid(row=0, column=1)
+        frame_12345_banlidan_total.pack(fill=tk.X)
+
+
+        # xbrx system export total frame
+        frame_xbrx_export_total = ttk.LabelFrame(tab_validation, text="小白热线系统汇总表(三高表):")
+        btn_choose_xbrx_export_total = ttk.Button(frame_xbrx_export_total, text="选择三高表", command=self.on_btn_choose_xbrx_export_total_click)
+        btn_choose_xbrx_export_total.grid(row=0, column=0)
+        self.str_xbrx_export_total_path = tk.StringVar()
+        self.entry_xbrx_export_total_path = ttk.Entry(frame_xbrx_export_total, state="readonly", textvariable=self.str_xbrx_export_total_path)
+        self.entry_xbrx_export_total_path.grid(row=0, column=1)
+        frame_xbrx_export_total.pack(fill=tk.X)
+
+
+        # frame validation actions
+        frame_validation_actions = ttk.Frame(tab_validation)
+        btn_valid = ttk.Button(frame_validation_actions, text="生成复核报告", command=self.on_btn_valid_click)
+        btn_valid.grid(row=0, column=0)
+        btn_open_valid_folder = ttk.Button(frame_validation_actions, text="打开复核报告文件夹", command=self.on_btn_open_valid_folder_click)
+        btn_open_valid_folder.grid(row=0, column=1)
+        frame_validation_actions.pack()
 
     
     def on_btn_choose_12345_source_workbook_click(self):
@@ -147,7 +182,32 @@ class xbrx_12345_excel_tool(tk.Tk):
             self.str_12345_source_workbook.set(filename)
         else:
             tk.messagebox.showerror("错误", "仅支持excel文件")
+
+
+    def on_btn_choose_12345_banlidan_total_click(self):
+        filename = tk.filedialog.askopenfilename()
+        if filename == "":
+            return
+        if filename.endswith(".xls") or filename.endswith(".xlsx"):    
+            self.str_12345_banlidan_total_path.set(filename)
+        else:
+            tk.messagebox.showerror("错误", "仅支持excel文件")
+
     
+    def on_btn_choose_xbrx_export_total_click(self):
+        filename = tk.filedialog.askopenfilename()
+        if filename == "":
+            return
+        if filename.endswith(".xls") or filename.endswith(".xlsx"):    
+            self.str_xbrx_export_total_path.set(filename)
+        else:
+            tk.messagebox.showerror("错误", "仅支持excel文件")
+
+
+    def on_btn_open_export_folder_click(self):
+        exported_templates_dir = make_config_dirs()[1]
+        open_folder(exported_templates_dir)
+
     
     def on_btn_export_click(self):
         source_excel_filename = self.str_12345_source_workbook.get()
@@ -175,22 +235,43 @@ class xbrx_12345_excel_tool(tk.Tk):
         
         rows = find_rows_by_time(source_excel_filename, start_time, end_time)
 
-        save_file_name = tk.filedialog.asksaveasfilename(filetypes = [("Excel 文件", "*.xlsx")], defaultextension=".xlsx", initialfile="123")
-        print(save_file_name)
-        if save_file_name == "":
-            return
-        if not save_file_name.endswith(".xlsx"):
-            return
+        # make today dir -> save file in today dir
+        # filename example: 
+        # 导出模板_xx条_20201210_20201210041211_20201210061530.xlsx
+        today_dir = make_today_dir()
+        today = datetime.date.today()
+        save_filename = f"导出模板_{len(rows)}条_{dt_to_date_str(today)}_{dt_to_datetime_str(start_time)}_{dt_to_datetime_str(end_time)}.xlsx"
+        save_path = os.path.join(today_dir, save_filename)
 
-        if write_rows_to_output_template(save_file_name, rows):
-            tk.messagebox.showinfo("成功", "保存成功")
+        if write_rows_to_output_template(save_path, rows):
+            if tk.messagebox.askyesno("成功", "保存成功！是否要查看导出模板？"):
+                open_folder(today_dir, save_path)
         else:
             tk.messagebox.showerror("错误", "保存失败")
-        # tk.messagebox.showinfo("rows", rows)
+
     
-    def on_btn_test(self):
-        write_rows_to_output_template(1)
+    def on_btn_valid_click(self):
+        banlidan_total_filename = self.str_12345_banlidan_total_path.get()
+        xbrx_export_total_filename = self.str_xbrx_export_total_path.get()
+
+        if banlidan_total_filename == "" or xbrx_export_total_filename == "":
+            tk.messagebox.showerror("错误", "请先选择Excel文件")
+            return
+
+        validation_report_text = generate_validation_report(banlidan_total_filename, xbrx_export_total_filename)
+        validation_logs_dir = save_validation_report_file(validation_report_text)
+        if validation_logs_dir is not None:
+            if tk.messagebox.askyesno("成功", "复核报告已生成，是否要查看？"):
+                open_folder(validation_logs_dir)
+        else:
+            tk.messagebox.showerror("错误", "保存失败")
+
     
+    def on_btn_open_valid_folder_click(self):
+        validation_logs_dir = make_config_dirs()[2]
+        open_folder(validation_logs_dir)
+
+
     def run(self):
         self.mainloop()
 
@@ -205,7 +286,7 @@ class row_select_dialog(tk.Toplevel):
     """
     pass
 
-
+# to be deleted
 if __name__ == "__main__":
-    tool = xbrx_12345_excel_tool()
-    tool.run()
+    app = xbrx_12345_excel_tool()
+    app.run()
