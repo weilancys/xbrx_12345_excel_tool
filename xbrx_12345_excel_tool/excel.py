@@ -1,162 +1,247 @@
+import xlrd
 import openpyxl
 import datetime
 import os
-import time
+from jinja2 import Environment, PackageLoader, select_autoescape
 from .utils import str_to_dt, get_now_report_str, dt_to_datetime_str, make_config_dirs
 
 
-def find_rows_by_time(filename, start_datetime, end_datetime):
-    START_ROW = 3
-    COL_RECEIVE_TIME = 1
+class ZhengFuBiao(object):
+    def __init__(self, source_file):
+        self.source_file = source_file
+        self.rows = []
+        self.DATA_STARTS_AT_ROW = 3 # by excel file
+        self.COL_RECEIVE_TIME = 2 # by excel file
+        self.COL_ID = 1 # by excel file
 
-    work_book = openpyxl.load_workbook(filename, read_only=True)
-    sheet = work_book.active
+        if source_file.endswith(".xls"):
+            workbook = xlrd.open_workbook(source_file)
+            sheet = workbook.sheet_by_index(0)
 
-    rows = []
-    for row in sheet.iter_rows(min_row=START_ROW, values_only=True):
-        receive_time_dt = str_to_dt(row[COL_RECEIVE_TIME].strip())
-        if receive_time_dt >= start_datetime and receive_time_dt <= end_datetime:
-            rows.append(row)
+            self.row_count = sheet.nrows
+            self.col_count = sheet.ncols
 
-    work_book.close()
-    return rows
+            for row_index in range(self.DATA_STARTS_AT_ROW - 1, self.row_count):
+                row = []
+                for col_index in range(self.col_count):
+                    value = str(sheet.cell_value(row_index, col_index)).strip()
+                    row.append(value)
+                self.rows.append(row)
+
+        elif source_file.endswith(".xlsx"):
+            workbook = openpyxl.load_workbook(source_file)
+            sheet = workbook.active
+            for row in sheet.iter_rows(min_row=self.DATA_STARTS_AT_ROW, values_only=True):
+                self.rows.append(row)
+            
+            self.row_count = len(self.rows)
+            self.col_count = len(self.rows[0])
 
 
-def write_rows_to_output_template(filename, rows):
-    """
-    docstring
-    """
-    if not filename.endswith(".xlsx"):
-        return False
+    def get_all_rows(self):
+        return self.rows
 
-    COL_DIFFERENCE = 6
-    TEMPLATE_FILENAME = "rx_12345_import_template.xlsx"
-    TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "templates", TEMPLATE_FILENAME)
+
+    def get_rows_by_time(self, start_datetime, end_datetime):
+        rows = []
+        for row in self.rows:
+            receive_time_dt = str_to_dt(row[self.COL_RECEIVE_TIME - 1].strip())
+            if receive_time_dt >= start_datetime and receive_time_dt <= end_datetime:
+                rows.append(row)
+        return rows
+
     
-    output_template = openpyxl.load_workbook(TEMPLATE_PATH)
-    sheet = output_template["Sheet1"]
+    def get_rows_by_ids(self, ids):
+        rows = []
+        for row in self.rows:
+            if row[self.COL_ID - 1] in ids:
+                rows.append(row)
+        return rows
+
     
-    row_count = len(rows)
-    for row_index in range(0, row_count):
-        col_index = 1 + COL_DIFFERENCE
-        for cell_value in rows[row_index]:
-            sheet.cell(row=row_index+2, column=col_index).value = cell_value
-            col_index += 1
-
-    output_template.save(filename)
-    return True
-
-
-def get_all_ids_from_12345_banlidan_total_file(filename):
-    ID_COL_INDEX = 0
-    work_book = openpyxl.load_workbook(filename, read_only=True)
-    sheet = work_book["Sheet0"]
-
-    ids = []
-    rows = sheet.iter_rows(min_row=3, values_only=True)
-    for row in rows:
-        if row[ID_COL_INDEX] is None or row[ID_COL_INDEX] == "":
-            raise ValueError("empty id")
-        ids.append(int(row[ID_COL_INDEX])) # ids should be ints
-
-    work_book.close()
-    return ids
+    def get_earliest_row(self):
+        earliest_row = None
+        for row in self.rows:
+            if earliest_row is None:
+                earliest_row = row
+            elif str_to_dt(row[self.COL_RECEIVE_TIME - 1].strip()) < str_to_dt(earliest_row[self.COL_RECEIVE_TIME - 1].strip()):
+                earliest_row = row
+        return earliest_row
 
 
-def get_all_ids_from_xbrx_export_total_file(filename):
-    ID_COL_INDEX = 1
-    work_book = openpyxl.load_workbook(filename) # can't use read_only here, don't know why yet
-    sheet = work_book.active
+    def get_latest_row(self):
+        latest_row = None
+        for row in self.rows:
+            if latest_row is None:
+                latest_row = row
+            elif str_to_dt(row[self.COL_RECEIVE_TIME - 1].strip()) > str_to_dt(latest_row[self.COL_RECEIVE_TIME - 1].strip()):
+                latest_row = row
+        return latest_row
 
-    ids = []
-    rows = sheet.iter_rows(min_row=3, values_only=True)
-    for row in rows:
-        if row[ID_COL_INDEX] is None or row[ID_COL_INDEX] == "":
-            continue # some rows have this column value as None
-        ids.append(int(row[ID_COL_INDEX])) # ids should be ints
-
-    work_book.close()
-
-    ids_dict = {}
-    for _id in ids:
-        if _id not in ids_dict:
-            ids_dict[_id] = 1
-        else:
-            ids_dict[_id] += 1
-
-    return ids_dict
-
-
-def generate_validation_report(banlidan_total_filename, xbrx_export_total_filename):
-    banlidan_total_ids = get_all_ids_from_12345_banlidan_total_file(banlidan_total_filename)
-    xbrx_export_total_ids = get_all_ids_from_xbrx_export_total_file(xbrx_export_total_filename)
-
-    missing_ids = []
-    validation_conclusion = None
-    for banlidan_id in banlidan_total_ids:
-        if banlidan_id not in xbrx_export_total_ids:
-            missing_ids.append(banlidan_id)
-
-    if missing_ids == []:
-        validation_conclusion = "未发现漏单，12345办理单汇总表内全部工单号已在热线系统内登记。"
-    else:
-        validation_conclusion = "发现漏单!\n以下工单为漏单，请进一步核实:\n"
-        for missing_id in missing_ids:
-            validation_conclusion += str(missing_id) + "\n"
-
-    attentions = ""
-    for xbrx_export_total_id in xbrx_export_total_ids:
-        if xbrx_export_total_ids[xbrx_export_total_id] > 1:
-            attentions += str(xbrx_export_total_id) + "\n"
-
-    to_be_used_1 = "起止时间：{banlidan_total_start_time} - {banlidan_total_end_time}"
-    to_be_used_2 = "起止时间：{xbrx_export_total_start_time} - {xbrx_export_total_end_time}"
-
-
-    validation_report_text = """
-    复核时间：{validation_datetime}
-
-    12345办理单汇总表(政府表)信息：
-    文件名: {banlidan_total_filename}
-    办理单条数：{banlidan_total_count}
-
-
-    小白热线系统汇总表(三高表)信息：
-    文件名: {xbrx_export_total_filename}
-    办理单条数: {xbrx_export_total_count}
-
-
-    复核结论：
-    {validation_conclusion}
     
+    def get_all_ids(self, include_duplicates=True):
+        ids = []
+        for row in self.rows:
+            _id = row[0]
+            if include_duplicates == False and _id in ids:
+                continue
+            ids.append(_id)
+        return ids
+
+
+class SangaoBiao(object):
+    def __init__(self, source_file):
+        self.source_file = source_file
+        workbook = openpyxl.load_workbook(source_file)
+        sheet_1 = workbook.active
+
+        self.DATA_STARTS_AT_ROW = 3 # by excel file
+        self.COL_12345_ID = 2 # by excel file
+
+        self.rows = []
+        for row in sheet_1.iter_rows(min_row=self.DATA_STARTS_AT_ROW, values_only=True):
+            self.rows.append(row)
+
+        if self.rows == []:
+            raise ValueError("empty excel file")
+        
+        self.row_count = len(self.rows)
+        self.col_count = len(self.rows[0])
     
-    存在重办或退回的工单：
-    {attentions}
-    """.format(
-        validation_datetime = get_now_report_str(),
-        banlidan_total_filename = banlidan_total_filename,
-        banlidan_total_count = len(banlidan_total_ids),
-        banlidan_total_start_time = 1,
-        banlidan_total_end_time = 1,
 
-        xbrx_export_total_filename = xbrx_export_total_filename,
-        xbrx_export_total_count = len(xbrx_export_total_ids),
-        xbrx_export_total_start_time = 1,
-        xbrx_export_total_end_time = 1,
+    def get_all_12345_ids(self, include_duplicates=True):
+        ids = []
+        for row in self.rows:
+            row_12345_id = str(row[self.COL_12345_ID - 1]).strip()
+            if row_12345_id != "":
+                if include_duplicates == False and row_12345_id in ids:
+                    continue
+                ids.append(row_12345_id)
+        return ids
 
-        validation_conclusion = validation_conclusion,
-        attentions = attentions
-    )
+    
+    def get_12345_ids_histogram(self, recurrent_id_only=False):
+        ids = self.get_all_12345_ids(include_duplicates=True)
+        ids_histogram = {}
+        for _id in ids:
+            ids_histogram[_id] = ids_histogram.get(_id, 0) + 1
+        
+        if recurrent_id_only:
+            keys = tuple(ids_histogram.keys())
+            for _id in keys:
+                if ids_histogram[_id] < 2:
+                    ids_histogram.pop(_id)
+        
+        return ids_histogram
 
-    return validation_report_text
+
+    def get_recurrent_rows(self):
+        recurrent_ids = tuple(self.get_12345_ids_histogram(recurrent_id_only=True).keys())
+        recurrent_rows = []
+        for row in self.rows:
+            if row[self.COL_12345_ID - 1] in recurrent_ids:
+                recurrent_rows.append(row)
+        return recurrent_rows
+
+    
+    def get_earliest_row(self):
+        earliest_row = None
+        for row in self.rows:
+            if earliest_row is None:
+                earliest_row = row
+            elif str_to_dt(row[self.COL_RECEIVE_TIME - 1].strip()) < str_to_dt(earliest_row[self.COL_RECEIVE_TIME - 1].strip()):
+                earliest_row = row
+        return earliest_row
 
 
-def save_validation_report_file(validation_report_text):
-    # todo return None if failed here.
-    now = datetime.datetime.now()
-    validation_logs_dir = make_config_dirs()[2]
-    filename = f"复核记录_{dt_to_datetime_str(now)}.txt"
-    file_path = os.path.join(validation_logs_dir, filename)
-    with open(file_path, "w") as f:
-        f.write(validation_report_text)
-    return validation_logs_dir
+    def get_latest_row(self):
+        return [0, 1]
+
+
+class SangaoTemplate(object):
+    def __init__(self, rows):
+        self.rows = rows
+        template_file = os.path.join(os.path.dirname(__file__), "templates", "sangao_template.xlsx")
+        self.template_workbook = openpyxl.load_workbook(template_file)
+        self.sheet_1 = self.template_workbook["Sheet1"]
+        self.sheet_2 = self.template_workbook["Sheet2"]
+
+        self.write_rows_to_template(self.rows)
+
+
+    def write_rows_to_template(self, rows):
+        COL_DIFFERENCE = 6
+        row_count = len(rows)
+        for row_index in range(0, row_count):
+            col_index = 1 + COL_DIFFERENCE
+            for cell_value in rows[row_index]:
+                self.sheet_1.cell(row=row_index+2, column=col_index).value = cell_value
+                col_index += 1
+
+    
+    def fix_validation(self, sheet):
+        validator = openpyxl.worksheet.datavalidation.DataValidation(type="list", formula1="=Sheet2!$A$2:$A$118", allow_blank=True)
+        validator.add("A2:A1048576")
+        sheet.add_data_validation(validator)
+
+
+    def save(self, save_path):
+        self.template_workbook.save(save_path)
+
+
+class ValidationReport(object):
+    def __init__(self, zhengfubiao, sangaobiao):
+        self.zhengfubiao = zhengfubiao
+        self.sangaobiao = sangaobiao
+        self.has_missing_ids = False
+        self.missing_ids = []
+        self.recurrent_id_histogram = self.sangaobiao.get_12345_ids_histogram(recurrent_id_only=True)
+        self.has_recurrent_rows = len(self.recurrent_id_histogram) > 0
+
+        zhengfubiao_ids = zhengfubiao.get_all_ids(include_duplicates=False)
+        sangaobiao_ids = sangaobiao.get_all_12345_ids(include_duplicates=True)
+
+        for zhengfubiao_id in zhengfubiao_ids:
+            if zhengfubiao_id not in sangaobiao_ids:
+                self.missing_ids.append(zhengfubiao_id)
+        
+        if self.missing_ids != []:
+            self.has_missing_ids = True
+
+
+    def generate_report_text(self):
+        jinja2_env = Environment(
+            loader=PackageLoader('xbrx_12345_excel_tool', 'templates'),
+            autoescape=select_autoescape(['html', 'xml'])
+        )
+        template = jinja2_env.get_template("validation_report.html")
+
+        ctx = {
+            "validation_datetime": get_now_report_str(),
+            "zhengfubiao": self.zhengfubiao,
+            "sangaobiao": self.sangaobiao,
+
+            "has_missing_ids": self.has_missing_ids,
+            "missing_ids": self.missing_ids,
+            "missing_rows": self.zhengfubiao.get_rows_by_ids(self.missing_ids),
+
+            "recurrent_rows": self.sangaobiao.get_recurrent_rows(),
+            "recurrent_id_histogram": self.recurrent_id_histogram,
+            "recurrent_rows_count": len(self.recurrent_id_histogram),
+            "has_recurrent_rows": self.has_recurrent_rows,
+        }
+
+        report_text = template.render(ctx=ctx)
+        return report_text
+
+
+    def save(self):
+        now = datetime.datetime.now()
+        filename = f"复核记录_{dt_to_datetime_str(now)}.html"
+        report_text = self.generate_report_text()
+        validation_logs_dir = make_config_dirs()[2]
+        file_path = os.path.join(validation_logs_dir, filename)
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(report_text)
+        return validation_logs_dir
+        

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复核报告</title>
+</head>
+<body>
+    <p>复核时间：{{ ctx.validation_datetime }}</p>
+    <hr>
+
+    <p>12345办理单汇总表(政府表)信息：</p>
+    <p>文件名: {{ ctx.zhengfubiao.source_file }}</p>
+    <p>办理单条数：{{ ctx.zhengfubiao.row_count }}</p>
+    <p>起止时间：{{ ctx.zhengfubiao.get_earliest_row()[1] }} -- {{ ctx.zhengfubiao.get_latest_row()[1] }}</p>
+    <hr>
+
+    <p>小白热线系统汇总表(三高表)信息：</p>
+    <p>文件名: {{ ctx.sangaobiao.source_file }}</p>
+    <p>办理单条数：{{ ctx.sangaobiao.row_count }}</p>
+    <p>多次出现办理单条数：{{ ctx.recurrent_rows_count }}</p>
+    <hr>
+
+    {% if ctx.has_missing_ids %}
+        <p>发现漏单！</p>
+        <table>
+            <tr>
+                <td>序号</td>
+                <td>12345工单号</td>
+                <td>接收时间</td>
+                <td>问题描述</td>
+                <td>转办意见</td>
+                <td>办结时限</td>
+            </tr>
+            {% for row in ctx.missing_rows %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td>{{ row[4] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>未发现漏单。</p>
+    {% endif %}
+    <hr>
+
+    {% if ctx.has_recurrent_rows %}
+        <p>存在重办或退回的工单：</p>
+        <table>
+            <tr>
+                <td>序号</td>
+                <td>出现次数</td>
+                <td>客服单编号</td>
+                <td>12345工单号</td>
+                <td>求助内容</td>
+                <td>回访内容</td>
+                <td>责任部门回复内容</td>
+                <td>热线派单时间</td>
+            </tr>
+            {% for row in ctx.recurrent_rows %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ ctx.recurrent_id_histogram[row[1]] }}</td>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td>{{ row[7] }}</td>
+                    <td>{{ row[10] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+</body>
+</html>

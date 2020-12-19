@@ -4,7 +4,7 @@ import tkinter.filedialog
 from tkinter import ttk
 import datetime
 import os
-from .excel import find_rows_by_time, write_rows_to_output_template, generate_validation_report, save_validation_report_file
+from .excel import ZhengFuBiao, SangaoBiao, SangaoTemplate, ValidationReport
 from .utils import make_config_dirs, make_today_dir, dt_to_date_str, dt_to_datetime_str, open_folder
 
 
@@ -233,7 +233,8 @@ class xbrx_12345_excel_tool(tk.Tk):
             int(self.cb_end_second.get())
         )
         
-        rows = find_rows_by_time(source_excel_filename, start_time, end_time)
+        zhengfubiao = ZhengFuBiao(source_excel_filename)
+        rows = zhengfubiao.get_rows_by_time(start_time, end_time)
 
         # make today dir -> save file in today dir
         # filename example: 
@@ -243,10 +244,12 @@ class xbrx_12345_excel_tool(tk.Tk):
         save_filename = f"导出模板_{len(rows)}条_{dt_to_date_str(today)}_{dt_to_datetime_str(start_time)}_{dt_to_datetime_str(end_time)}.xlsx"
         save_path = os.path.join(today_dir, save_filename)
 
-        if write_rows_to_output_template(save_path, rows):
+        try:
+            sangao_template = SangaoTemplate(rows)
+            sangao_template.save(save_path)
             if tk.messagebox.askyesno("成功", "保存成功！是否要查看导出模板？"):
                 open_folder(today_dir, save_path)
-        else:
+        except:
             tk.messagebox.showerror("错误", "保存失败")
 
     
@@ -258,13 +261,15 @@ class xbrx_12345_excel_tool(tk.Tk):
             tk.messagebox.showerror("错误", "请先选择Excel文件")
             return
 
-        validation_report_text = generate_validation_report(banlidan_total_filename, xbrx_export_total_filename)
-        validation_logs_dir = save_validation_report_file(validation_report_text)
-        if validation_logs_dir is not None:
+        try:
+            zhengfubiao = ZhengFuBiao(banlidan_total_filename)
+            sangaobiao = SangaoBiao(xbrx_export_total_filename)
+            validation_report = ValidationReport(zhengfubiao, sangaobiao)
+            validation_logs_dir = validation_report.save()
             if tk.messagebox.askyesno("成功", "复核报告已生成，是否要查看？"):
                 open_folder(validation_logs_dir)
-        else:
-            tk.messagebox.showerror("错误", "保存失败")
+        except:
+            tk.messagebox.showerror("错误", "保存失败")            
 
     
     def on_btn_open_valid_folder_click(self):
@@ -276,17 +281,6 @@ class xbrx_12345_excel_tool(tk.Tk):
         self.mainloop()
 
 
-class row_select_dialog(tk.Toplevel):
-    """
-    things that might make me happy now:
-        1. coding
-        2. partner
-        3. racing & trucking
-        4. reading
-    """
-    pass
-
-# to be deleted
 if __name__ == "__main__":
     app = xbrx_12345_excel_tool()
     app.run()
