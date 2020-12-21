@@ -23,7 +23,7 @@
 
     {% if ctx.has_missing_ids %}
         <p>发现漏单！</p>
-        <table>
+        <table border="1">
             <tr>
                 <td>序号</td>
                 <td>12345工单号</td>
@@ -50,15 +50,15 @@
 
     {% if ctx.has_recurrent_rows %}
         <p>存在重办或退回的工单：</p>
-        <table>
+        <table border="1">
             <tr>
                 <td>序号</td>
                 <td>出现次数</td>
                 <td>客服单编号</td>
                 <td>12345工单号</td>
-                <td>求助内容</td>
-                <td>回访内容</td>
-                <td>责任部门回复内容</td>
+                <td>求助内容(70字)</td>
+                <td>回访内容(70字)</td>
+                <td>责任部门回复内容(70字)</td>
                 <td>热线派单时间</td>
             </tr>
             {% for row in ctx.recurrent_rows %}
@@ -67,10 +67,26 @@
                     <td>{{ ctx.recurrent_id_histogram[row[1]] }}</td>
                     <td>{{ row[0] }}</td>
                     <td>{{ row[1] }}</td>
-                    <td>{{ row[2] }}</td>
-                    <td>{{ row[3] }}</td>
-                    <td>{{ row[7] }}</td>
-                    <td>{{ row[10] }}</td>
+                    {% if row[2] == None %}
+                        <td>无内容</td>
+                    {% else %}
+                        <td>{{ row[2][:70] }}</td>
+                    {% endif %}
+                    {% if row[3] == None %}
+                        <td>无内容</td>
+                    {% else %}
+                        <td>{{ row[3][:70] }}</td>
+                    {% endif %}
+                    {% if row[7] == None %}
+                        <td>无内容</td>
+                    {% else %}
+                        <td>{{ row[7][:70] }}</td>
+                    {% endif %}
+                    {% if row[10] == None %}
+                        <td>无内容</td>
+                    {% else %}
+                        <td>{{ row[10] }}</td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </table>

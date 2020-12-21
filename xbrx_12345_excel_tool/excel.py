@@ -216,6 +216,9 @@ class ValidationReport(object):
         )
         template = jinja2_env.get_template("validation_report.html")
 
+        recurrent_rows = self.sangaobiao.get_recurrent_rows()
+        recurrent_rows.sort(key=lambda row: row[1]) # combine rows with same 12345 id
+
         ctx = {
             "validation_datetime": get_now_report_str(),
             "zhengfubiao": self.zhengfubiao,
@@ -225,7 +228,7 @@ class ValidationReport(object):
             "missing_ids": self.missing_ids,
             "missing_rows": self.zhengfubiao.get_rows_by_ids(self.missing_ids),
 
-            "recurrent_rows": self.sangaobiao.get_recurrent_rows(),
+            "recurrent_rows": recurrent_rows,
             "recurrent_id_histogram": self.recurrent_id_histogram,
             "recurrent_rows_count": len(self.recurrent_id_histogram),
             "has_recurrent_rows": self.has_recurrent_rows,
