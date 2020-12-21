@@ -4,92 +4,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>复核报告</title>
+    <style>
+        body {
+            background-color: #c6dbc6;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        .report-section {
+            margin: 2.5em;
+        }
+    </style>
 </head>
 <body>
-    <p>复核时间：{{ ctx.validation_datetime }}</p>
-    <hr>
+    <div class="container">
+        <div class="report-section report-head">
+            <center>
+                <h1>12345漏单复核报告</h1>
+                <p>复核时间：{{ ctx.validation_datetime }}</p>
+            </center>
+        </div>
+        
+        <div class="report-section report-zhengfubiao-stat">
+            <h3>12345办理单汇总表(政府表)信息：</h3>
+            <p>文件名: {{ ctx.zhengfubiao.source_file }}</p>
+            <p>办理单条数：{{ ctx.zhengfubiao.row_count }}</p>
+            <p>起止时间：{{ ctx.zhengfubiao.get_earliest_row()[1] }} -- {{ ctx.zhengfubiao.get_latest_row()[1] }}</p>
+        </div>
 
-    <p>12345办理单汇总表(政府表)信息：</p>
-    <p>文件名: {{ ctx.zhengfubiao.source_file }}</p>
-    <p>办理单条数：{{ ctx.zhengfubiao.row_count }}</p>
-    <p>起止时间：{{ ctx.zhengfubiao.get_earliest_row()[1] }} -- {{ ctx.zhengfubiao.get_latest_row()[1] }}</p>
-    <hr>
+        <div class="report-section report-sangaobiao-stat">
+            <h3>小白热线系统汇总表(三高表)信息：</h3>
+            <p>文件名: {{ ctx.sangaobiao.source_file }}</p>
+            <p>办理单条数：{{ ctx.sangaobiao.row_count }}</p>
+            <p>多次出现办理单条数：{{ ctx.recurrent_rows_count }}</p>
+        </div> 
 
-    <p>小白热线系统汇总表(三高表)信息：</p>
-    <p>文件名: {{ ctx.sangaobiao.source_file }}</p>
-    <p>办理单条数：{{ ctx.sangaobiao.row_count }}</p>
-    <p>多次出现办理单条数：{{ ctx.recurrent_rows_count }}</p>
-    <hr>
 
-    {% if ctx.has_missing_ids %}
-        <p>发现漏单！</p>
-        <table border="1">
-            <tr>
-                <td>序号</td>
-                <td>12345工单号</td>
-                <td>接收时间</td>
-                <td>问题描述</td>
-                <td>转办意见</td>
-                <td>办结时限</td>
-            </tr>
-            {% for row in ctx.missing_rows %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ row[0] }}</td>
-                    <td>{{ row[1] }}</td>
-                    <td>{{ row[2] }}</td>
-                    <td>{{ row[3] }}</td>
-                    <td>{{ row[4] }}</td>
-                </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p>未发现漏单。</p>
-    {% endif %}
-    <hr>
+        <div class="report-section report-missing-rows">
+            <h3>复核结论：</h3>
+            {% if ctx.has_missing_ids %}
+                <h4><strong></strong>发现漏单！</strong></h4>
+                <table border="1">
+                    <tr>
+                        <td>序号</td>
+                        <td>12345工单号</td>
+                        <td>接收时间</td>
+                        <td>问题描述</td>
+                        <td>转办意见</td>
+                        <td>办结时限</td>
+                    </tr>
+                    {% for row in ctx.missing_rows %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ row[0] }}</td>
+                            <td>{{ row[1] }}</td>
+                            <td>{{ row[2] }}</td>
+                            <td>{{ row[3] }}</td>
+                            <td>{{ row[4] }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <h4><strong>未发现漏单。</strong></h4>
+            {% endif %}
+        </div>
 
-    {% if ctx.has_recurrent_rows %}
-        <p>存在重办或退回的工单：</p>
-        <table border="1">
-            <tr>
-                <td>序号</td>
-                <td>出现次数</td>
-                <td>客服单编号</td>
-                <td>12345工单号</td>
-                <td>求助内容(70字)</td>
-                <td>回访内容(70字)</td>
-                <td>责任部门回复内容(70字)</td>
-                <td>热线派单时间</td>
-            </tr>
-            {% for row in ctx.recurrent_rows %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ ctx.recurrent_id_histogram[row[1]] }}</td>
-                    <td>{{ row[0] }}</td>
-                    <td>{{ row[1] }}</td>
-                    {% if row[2] == None %}
-                        <td>无内容</td>
-                    {% else %}
-                        <td>{{ row[2][:70] }}</td>
-                    {% endif %}
-                    {% if row[3] == None %}
-                        <td>无内容</td>
-                    {% else %}
-                        <td>{{ row[3][:70] }}</td>
-                    {% endif %}
-                    {% if row[7] == None %}
-                        <td>无内容</td>
-                    {% else %}
-                        <td>{{ row[7][:70] }}</td>
-                    {% endif %}
-                    {% if row[10] == None %}
-                        <td>无内容</td>
-                    {% else %}
-                        <td>{{ row[10] }}</td>
-                    {% endif %}
-                </tr>
-            {% endfor %}
-        </table>
-    {% endif %}
+
+        <div class="report-section report-recurrent-rows">
+            {% if ctx.has_recurrent_rows %}
+                <h3>存在重办或退回的工单：</h3>
+                <table border="1">
+                    <tr>
+                        <td>序号</td>
+                        <td>出现次数</td>
+                        <td>客服单编号</td>
+                        <td>12345工单号</td>
+                        <td>求助内容(70字)</td>
+                        <td>回访内容(70字)</td>
+                        <td>责任部门回复内容(70字)</td>
+                        <td>热线派单时间</td>
+                    </tr>
+                    {% for row in ctx.recurrent_rows %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ ctx.recurrent_id_histogram[row[1]] }}</td>
+                            <td>{{ row[0] }}</td>
+                            <td>{{ row[1] }}</td>
+                            {% if row[2] == None %}
+                                <td>无内容</td>
+                            {% else %}
+                                <td>{{ row[2][:70] }}</td>
+                            {% endif %}
+                            {% if row[3] == None %}
+                                <td>无内容</td>
+                            {% else %}
+                                <td>{{ row[3][:70] }}</td>
+                            {% endif %}
+                            {% if row[7] == None %}
+                                <td>无内容</td>
+                            {% else %}
+                                <td>{{ row[7][:70] }}</td>
+                            {% endif %}
+                            {% if row[10] == None %}
+                                <td>无内容</td>
+                            {% else %}
+                                <td>{{ row[10] }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+        </div>
+    </div>
 </body>
 </html>
