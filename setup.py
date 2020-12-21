@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name = 'xbrx_12345_excel_tool',
-    version = "0.0.9",
+    version = "0.1.0",
     author="lbcoder",
     author_email="lbcoder@hotmail.com",
     description="A excel helper tool for xbrx",
