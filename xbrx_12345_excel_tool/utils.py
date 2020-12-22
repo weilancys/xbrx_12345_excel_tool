@@ -4,7 +4,8 @@ import subprocess
 
 
 def make_config_dirs():
-    home_dir = os.path.expanduser("~")
+    #home_dir = os.path.expanduser("~")
+    home_dir = "D:\\"
     config_dir = os.path.join(home_dir, ".xbrx_12345_excel_tool")
     exported_templates_dir =  os.path.join(config_dir, "导出记录")
     validation_logs_dir =  os.path.join(config_dir, "复核记录")

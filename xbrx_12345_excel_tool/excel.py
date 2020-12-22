@@ -240,7 +240,7 @@ class ValidationReport(object):
 
     def save(self):
         now = datetime.datetime.now()
-        filename = f"复核记录_{dt_to_datetime_str(now)}.html"
+        filename = f"复核报告_{dt_to_datetime_str(now)}.html"
         report_text = self.generate_report_text()
         validation_logs_dir = make_config_dirs()[2]
         file_path = os.path.join(validation_logs_dir, filename)
