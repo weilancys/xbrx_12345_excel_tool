@@ -31,11 +31,12 @@ def str_to_dt(dt_str):
         convert time string to datetime object.
 
         parameters:
-            dt_str (str): a date & time string in the format %Y/%m/%d %H:%M:%S
+            dt_str (str): a date & time string in the format %Y-%m-%d %H:%M:%S
         return:
             dt (datetime.datetime): a datetime.datetime object
     """
-    FORMAT = "%Y/%m/%d %H:%M:%S"
+    # FORMAT = "%Y/%m/%d %H:%M:%S"
+    FORMAT = "%Y-%m-%d %H:%M:%S"
     dt = datetime.datetime.strptime(dt_str, FORMAT)
     return dt
 
