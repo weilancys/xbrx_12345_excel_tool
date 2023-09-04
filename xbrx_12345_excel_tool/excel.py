@@ -180,12 +180,22 @@ class SangaoTemplate(object):
 
     
     def fix_validation(self, sheet):
-        validator = openpyxl.worksheet.datavalidation.DataValidation(type="list", formula1="=Sheet2!$A$2:$A$118", allow_blank=True)
-        validator.add("A2:A1048576")
-        sheet.add_data_validation(validator)
+        validator_service_types = openpyxl.worksheet.datavalidation.DataValidation(type="list", formula1="=Sheet2!$A$2:$A$120", allow_blank=True)
+        validator_service_types.add("A2:A1048576")
+
+        validator_departments = openpyxl.worksheet.datavalidation.DataValidation(type="list", formula1="=Sheet2!$B$2:$B$44", allow_blank=True)
+        validator_departments.add("B2:B1048576")
+        validator_departments.add("C2:C1048576")
+        validator_departments.add("D2:D1048576")
+        validator_departments.add("E2:E1048576")
+
+        sheet.add_data_validation(validator_service_types)
+        sheet.add_data_validation(validator_departments)
+
 
 
     def save(self, save_path):
+        self.fix_validation(self.sheet_1)
         self.template_workbook.save(save_path)
 
 
